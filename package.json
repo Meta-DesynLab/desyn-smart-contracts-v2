@@ -1,0 +1,39 @@
+{
+  "name": "desyn-core",
+  "version": "1.0.0",
+  "description": "<p align=center> <img width=\"128px\" src=\"https://desyn-labs.github.io/pebbles/images/pebbles-pad.256w.png\" alt=\"desyn pebbles logo\"/> </p>",
+  "main": "hardhat.config.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "deploy:dev": "npx hardhat run scripts/deploy-desyn.js && npx hardhat run scripts/deploy-bactions.js",
+    "deploy:local": "npx hardhat run --network local scripts/deploy-desyn.js && npx hardhat run --network local scripts/deploy-bactions.js && npx hardhat run --network local scripts/deploy-mock-tokens.js",
+    "deploy:test": "npx hardhat run --network local scripts/deploy-desyn.js && npx hardhat run --network local scripts/deploy-bactions.js",
+    "deploy:kovan": "npx hardhat run --network kovan scripts/deploy-desyn.js && npx hardhat run --network kovan scripts/deploy-bactions.js",
+    "mock": "npx hardhat run --network local scripts/deploy-mock-tokens.js",
+    "mock:kovan": "npx hardhat run --network kovan scripts/deploy-mock-tokens.js",
+    "test": "npx hardhat run --network hardhat scripts/test-around.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/desyn-labs/desyn-core.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/desyn-labs/desyn-core/issues"
+  },
+  "homepage": "https://github.com/desyn-labs/desyn-core#readme",
+  "dependencies": {
+    "@nomiclabs/hardhat-ethers": "^2.0.1",
+    "@openzeppelin/contracts": "^2.5.0",
+    "ethers": "^5.0.31",
+    "hardhat": "^2.0.11"
+  },
+  "devDependencies": {
+    "@nomiclabs/hardhat-etherscan": "^2.1.8",
+    "dotenv": "^10.0.0"
+  }
+}
