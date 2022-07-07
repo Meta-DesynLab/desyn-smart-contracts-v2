@@ -426,8 +426,14 @@ contract ConfigurableRightsPool is PCToken, DesynOwnable, DesynReentrancyGuard {
         require(gradualUpdate.startBlock == 0, "ERR_NO_UPDATE_DURING_GRADUAL");
         bool bools = IVault(vault_Address).getManagerClaimBool(address(this));
         if(bools){
-        IVault(vault_Address).managerClaim(address(this));
+            IVault(vault_Address).managerClaim(address(this));
         }  
+
+        if (!bPool.isBound(tokenB)) {
+            bool returnValue = IERC20(tokenB).safeApprove(address(bPool), DesynConstants.MAX_UINT);
+            require(returnValue, "ERR_ERC20_FALSE");
+        }
+
         // Delegate to library to save space
         SmartPoolManager.rebalance(IConfigurableRightsPool(address(this)), bPool, tokenA, tokenB, deltaWeight, minAmountOut);
     }
