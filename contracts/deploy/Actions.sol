@@ -66,11 +66,9 @@ abstract contract IConfigurableRightsPool is AbstractPool {
     ) external virtual;
     function createPool(uint initialSupply) external virtual;
     function setCap(uint newCap) external virtual;
-    function updateWeight(address token, uint newWeight) external virtual;
     function rebalance(address tokenA, address tokenB, uint deltaWeight, uint minAmountOut) external virtual;
     function commitAddToken(address token, uint balance, uint denormalizedWeight) external virtual;
     function applyAddToken() external virtual;
-    function removeToken(address token) external virtual;
     function whitelistLiquidityProvider(address provider) external virtual;
     function removeWhitelistedLiquidityProvider(address provider) external virtual;
     function bPool() external view virtual returns (LiquidityPoolActions);
@@ -244,18 +242,6 @@ contract Actions {
     }
     
     // --- Smart pool management ---
-    
-    function increaseWeight(
-        IConfigurableRightsPool crp,
-        ERC20 token,
-        uint newWeight,
-        uint tokenAmountIn
-    ) external {
-        require(token.transferFrom(msg.sender, address(this), tokenAmountIn), "ERR_TRANSFER_FAILED");
-        _safeApprove(token, address(crp), tokenAmountIn);
-        crp.updateWeight(address(token), newWeight);
-        require(crp.transfer(msg.sender, crp.balanceOf(address(this))), "ERR_TRANSFER_FAILED");
-    }
 
     function rebalance(
         IConfigurableRightsPool crp,
@@ -265,26 +251,6 @@ contract Actions {
         uint minAmountOut
     ) external {
         crp.rebalance(tokenA, tokenB, deltaWeight, minAmountOut);
-    }
-
-    // function rebalanceWithNewToken(
-    //     IConfigurableRightsPool crp,
-    //     address tokenA,
-    //     address tokenB,
-    //     uint minAmountOut
-    // ) external {
-    //     crp.rebalanceWithNewToken(tokenA, tokenB, minAmountOut);
-    // }
-    
-    function decreaseWeight(
-        IConfigurableRightsPool crp,
-        ERC20 token,
-        uint newWeight,
-        uint poolAmountIn
-    ) external {
-        require(crp.transferFrom(msg.sender, address(this), poolAmountIn), "ERR_TRANSFER_FAILED");
-        crp.updateWeight(address(token), newWeight);
-        require(token.transfer(msg.sender, token.balanceOf(address(this))), "ERR_TRANSFER_FAILED");
     }
 
     function setCap(
@@ -312,16 +278,6 @@ contract Actions {
         _safeApprove(token, address(crp), tokenAmountIn);
         crp.applyAddToken();
         require(crp.transfer(msg.sender, crp.balanceOf(address(this))), "ERR_TRANSFER_FAILED");
-    }
-
-    function removeToken(
-        IConfigurableRightsPool crp,
-        ERC20 token,
-        uint poolAmountIn
-    ) external {
-        require(crp.transferFrom(msg.sender, address(this), poolAmountIn), "ERR_TRANSFER_FAILED");
-        crp.removeToken(address(token));
-        require(token.transfer(msg.sender, token.balanceOf(address(this))), "ERR_TRANSFER_FAILED");
     }
 
     function whitelistLiquidityProvider(

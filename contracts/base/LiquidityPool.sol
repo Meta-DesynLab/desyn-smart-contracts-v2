@@ -12,7 +12,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-pragma solidity ^0.6.6;
+pragma solidity 0.6.12;
 
 import "./LpToken.sol";
 import "./Math.sol";
@@ -294,9 +294,7 @@ contract LiquidityPool is BBronze, LpToken, Math {
         } else if (balance < oldBalance) {
             // In this case liquidity is being withdrawn, so charge EXIT_FEE
             uint tokenBalanceWithdrawn = bsub(oldBalance, balance);
-            uint tokenExitFee = bmul(tokenBalanceWithdrawn, EXIT_FEE);
-            _pushUnderlying(token, msg.sender, bsub(tokenBalanceWithdrawn, tokenExitFee));
-            _pushUnderlying(token, _factory, tokenExitFee);
+            _pushUnderlying(token, msg.sender, tokenBalanceWithdrawn);
         }
     }
 
@@ -420,7 +418,6 @@ contract LiquidityPool is BBronze, LpToken, Math {
         require(!_finalized, "ERR_IS_FINALIZED");
 
         uint tokenBalance = _records[token].balance;
-        uint tokenExitFee = bmul(tokenBalance, EXIT_FEE);
 
         _totalWeight = bsub(_totalWeight, _records[token].denorm);
 
@@ -438,8 +435,7 @@ contract LiquidityPool is BBronze, LpToken, Math {
             balance: 0
         });
 
-        _pushUnderlying(token, msg.sender, bsub(tokenBalance, tokenExitFee));
-        _pushUnderlying(token, _factory, tokenExitFee);
+        _pushUnderlying(token, msg.sender, tokenBalance);
     }
 
     function unbindPure(address token)
@@ -536,14 +532,11 @@ contract LiquidityPool is BBronze, LpToken, Math {
         require(_finalized, "ERR_NOT_FINALIZED");
 
         uint poolTotal = totalSupply();
-        uint exitFee = bmul(poolAmountIn, EXIT_FEE);
-        uint pAiAfterExitFee = bsub(poolAmountIn, exitFee);
-        uint ratio = bdiv(pAiAfterExitFee, poolTotal);
+        uint ratio = bdiv(poolAmountIn, poolTotal);
         require(ratio != 0, "ERR_MATH_APPROX");
 
         _pullPoolShare(msg.sender, poolAmountIn);
-        _pushPoolShare(_factory, exitFee);
-        _burnPoolShare(pAiAfterExitFee);
+        _burnPoolShare(poolAmountIn);
 
         for (uint i = 0; i < _tokens.length; i++) {
             address t = _tokens[i];

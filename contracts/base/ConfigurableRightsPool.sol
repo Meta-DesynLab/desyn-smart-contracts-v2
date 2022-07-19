@@ -83,8 +83,6 @@ contract ConfigurableRightsPool is PCToken, DesynOwnable, DesynReentrancyGuard {
     address[] private _initialTokens;
     uint[] private _initialBalances;
 
-    // Enforce a minimum time between the start and end blocks
-    uint public minimumWeightChangeBlockPeriod;
     // Enforce a mandatory wait time between updates
     // This is also the wait time between committing and applying a new token
     uint public addTokenTimeLockInBlocks;
@@ -175,8 +173,6 @@ contract ConfigurableRightsPool is PCToken, DesynOwnable, DesynReentrancyGuard {
     // Pools without permission to update weights cannot use them anyway, and should call
     //   the default createPool() function.
     // To override these defaults, pass them into the overloaded createPool()
-    // Period is in blocks; 500 blocks ~ 2 hours; 90,000 blocks ~ 2 weeks
-    uint public constant DEFAULT_MIN_WEIGHT_CHANGE_BLOCK_PERIOD = 90000;
     uint public constant DEFAULT_ADD_TOKEN_TIME_LOCK_IN_BLOCKS = 0;
 
     // Function declarations
@@ -232,7 +228,6 @@ contract ConfigurableRightsPool is PCToken, DesynOwnable, DesynReentrancyGuard {
         redeemFee = poolParams.redeemFee;
 
         // These default block time parameters can be overridden in createPool
-        minimumWeightChangeBlockPeriod = DEFAULT_MIN_WEIGHT_CHANGE_BLOCK_PERIOD;
         addTokenTimeLockInBlocks = DEFAULT_ADD_TOKEN_TIME_LOCK_IN_BLOCKS;
         
         gradualUpdate.startWeights = poolParams.tokenWeights;
@@ -508,33 +503,6 @@ contract ConfigurableRightsPool is PCToken, DesynOwnable, DesynReentrancyGuard {
         );
     }
 
-     /**
-     * @notice Remove a token from the pool
-     * @dev bPool is a contract interface; function calls on it are external
-     * @param token - token to remove
-     */
-    function removeToken(address token)
-        external
-        logs
-        lock
-        onlyOwner
-        needsBPool
-    {
-        // It's possible to have remove rights without having add rights
-        require(rights.canAddRemoveTokens,"ERR_CANNOT_ADD_REMOVE_TOKENS");
-        // After createPool, token list is maintained in the underlying BPool
-        require(!newToken.isCommitted, "ERR_REMOVE_WITH_ADD_PENDING");
-        // Prevent removing during an update (or token lists can get out of sync)
-        require(gradualUpdate.startBlock == 0, "ERR_NO_UPDATE_DURING_GRADUAL");
-        bool bools = IVault(vault_Address).getManagerClaimBool(address(this));
-        if(bools){
-        IVault(vault_Address).managerClaim(address(this));
-        } 
-
-        // Delegate to library to save space
-        SmartPoolManager.removeToken(IConfigurableRightsPool(address(this)), bPool, token);
-    } 
-
     /**
      * @notice Join a pool
      * @dev Emits a LogJoin event (for each token)
@@ -613,8 +581,7 @@ contract ConfigurableRightsPool is PCToken, DesynOwnable, DesynReentrancyGuard {
 
         // Library computes actualAmountsOut, and does many validations
         // Also computes the exitFee and pAiAfterExitFee
-        (uint exitFee,
-         uint pAiAfterExitFee,
+        (uint pAiAfterExitFee,
          uint[] memory actualAmountsOut) = SmartPoolManager.exitPool(
                                                IConfigurableRightsPool(address(this)),
                                                bPool,
@@ -622,7 +589,6 @@ contract ConfigurableRightsPool is PCToken, DesynOwnable, DesynReentrancyGuard {
                                                minAmountsOut
                                            );
         _pullPoolShare(msg.sender, poolAmountIn);
-        _pushPoolShare(address(bFactory), exitFee);
         _burnPoolShare(pAiAfterExitFee);
 
         // After createPool, token list is maintained in the underlying BPool

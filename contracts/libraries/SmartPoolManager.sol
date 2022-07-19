@@ -175,46 +175,6 @@ library SmartPoolManager {
         self.pushPoolShareFromLib(msg.sender, poolShares);
     }
 
-     /**
-     * @notice Remove a token from the pool
-     * @dev Logic in the CRP controls when ths can be called. There are two related permissions:
-     *      AddRemoveTokens - which allows removing down to the underlying BPool limit of two
-     *      RemoveAllTokens - which allows completely draining the pool by removing all tokens
-     *                        This can result in a non-viable pool with 0 or 1 tokens (by design),
-     *                        meaning all swapping or binding operations would fail in this state
-     * @param self - ConfigurableRightsPool instance calling the library
-     * @param bPool - Core BPool the CRP is wrapping
-     * @param token - token to remove
-     */
-    function removeToken(
-        IConfigurableRightsPool self,
-        IBPool bPool,
-        address token
-    )
-        external
-    {
-        uint totalSupply = self.totalSupply();
-
-        // poolShares = totalSupply * tokenWeight / totalWeight
-        uint poolShares = DesynSafeMath.bdiv(DesynSafeMath.bmul(totalSupply,
-                                                                      bPool.getDenormalizedWeight(token)),
-                                                bPool.getTotalDenormalizedWeight());
-
-        // this is what will be unbound from the pool
-        // Have to get it before unbinding
-        uint balance = bPool.getBalance(token);
-
-        // Unbind and get the tokens out of desyn pool
-        bPool.unbind(token);
-
-        // Now with the tokens this contract can send them to msg.sender
-        bool xfer = IERC20(token).transfer(self.getController(), balance);
-        require(xfer, "ERR_ERC20_FALSE");
-
-        self.pullPoolShareFromLib(self.getController(), poolShares);
-        self.burnPoolShareFromLib(poolShares);
-    }
-
     /**
      * @notice Non ERC20-conforming tokens are problematic; don't allow them in pools
      * @dev Will revert if invalid
@@ -292,7 +252,6 @@ library SmartPoolManager {
      * @param bPool - Core BPool the CRP is wrapping
      * @param poolAmountIn - amount of pool tokens to redeem
      * @param minAmountsOut - minimum amount of asset tokens to receive
-     * @return exitFee - calculated exit fee
      * @return pAiAfterExitFee - final amount in (after accounting for exit fee)
      * @return actualAmountsOut - calculated amounts of each token to pull
      */
@@ -304,7 +263,7 @@ library SmartPoolManager {
     )
         external
         view
-        returns (uint exitFee, uint pAiAfterExitFee, uint[] memory actualAmountsOut)
+        returns (uint pAiAfterExitFee, uint[] memory actualAmountsOut)
     {
         address[] memory tokens = bPool.getCurrentTokens();
 
@@ -313,8 +272,7 @@ library SmartPoolManager {
         uint poolTotal = self.totalSupply();
 
         // Calculate exit fee and the final amount in
-        exitFee = DesynSafeMath.bmul(poolAmountIn, DesynConstants.EXIT_FEE);
-        pAiAfterExitFee = DesynSafeMath.bsub(poolAmountIn, exitFee);
+        pAiAfterExitFee = DesynSafeMath.bsub(poolAmountIn, 0);
 
         uint ratio = DesynSafeMath.bdiv(pAiAfterExitFee,
                                            DesynSafeMath.badd(poolTotal, 1));
@@ -415,88 +373,6 @@ library SmartPoolManager {
         require(tokenAmountIn <= DesynSafeMath.bmul(bPool.getBalance(tokenIn),
                                                        DesynConstants.MAX_IN_RATIO),
                                                        "ERR_MAX_IN_RATIO");
-    }
-
-    /**
-     * @notice Exit a pool - redeem a specific number of pool tokens for an underlying asset
-     *         Asset must be present in the pool, and will incur an EXIT_FEE (if set to non-zero)
-     * @param self - ConfigurableRightsPool instance calling the library
-     * @param bPool - Core BPool the CRP is wrapping
-     * @param tokenOut - which token the caller wants to receive
-     * @param poolAmountIn - amount of pool tokens to redeem
-     * @param minAmountOut - minimum asset tokens to receive
-     * @return exitFee - calculated exit fee
-     * @return tokenAmountOut - amount of asset tokens returned
-     */
-    function exitswapPoolAmountIn(
-        IConfigurableRightsPool self,
-        IBPool bPool,
-        address tokenOut,
-        uint poolAmountIn,
-        uint minAmountOut
-    )
-        external
-        view
-        returns (uint exitFee, uint tokenAmountOut)
-    {
-        require(bPool.isBound(tokenOut), "ERR_NOT_BOUND");
-
-        tokenAmountOut = bPool.calcSingleOutGivenPoolIn(
-                            bPool.getBalance(tokenOut),
-                            bPool.getDenormalizedWeight(tokenOut),
-                            self.totalSupply(),
-                            bPool.getTotalDenormalizedWeight(),
-                            poolAmountIn,
-                            bPool.getSwapFee()
-                        );
-
-        require(tokenAmountOut >= minAmountOut, "ERR_LIMIT_OUT");
-        require(tokenAmountOut <= DesynSafeMath.bmul(bPool.getBalance(tokenOut),
-                                                        DesynConstants.MAX_OUT_RATIO),
-                                                        "ERR_MAX_OUT_RATIO");
-
-        exitFee = DesynSafeMath.bmul(poolAmountIn, DesynConstants.EXIT_FEE);
-    }
-
-    /**
-     * @notice Exit a pool - redeem pool tokens for a specific amount of underlying assets
-     *         Asset must be present in the pool
-     * @param self - ConfigurableRightsPool instance calling the library
-     * @param bPool - Core BPool the CRP is wrapping
-     * @param tokenOut - which token the caller wants to receive
-     * @param tokenAmountOut - amount of underlying asset tokens to receive
-     * @param maxPoolAmountIn - maximum pool tokens to be redeemed
-     * @return exitFee - calculated exit fee
-     * @return poolAmountIn - amount of pool tokens redeemed
-     */
-    function exitswapExternAmountOut(
-        IConfigurableRightsPool self,
-        IBPool bPool,
-        address tokenOut,
-        uint tokenAmountOut,
-        uint maxPoolAmountIn
-    )
-        external
-        view
-        returns (uint exitFee, uint poolAmountIn)
-    {
-        require(bPool.isBound(tokenOut), "ERR_NOT_BOUND");
-        require(tokenAmountOut <= DesynSafeMath.bmul(bPool.getBalance(tokenOut),
-                                                        DesynConstants.MAX_OUT_RATIO),
-                                                        "ERR_MAX_OUT_RATIO");
-        poolAmountIn = bPool.calcPoolInGivenSingleOut(
-                            bPool.getBalance(tokenOut),
-                            bPool.getDenormalizedWeight(tokenOut),
-                            self.totalSupply(),
-                            bPool.getTotalDenormalizedWeight(),
-                            tokenAmountOut,
-                            bPool.getSwapFee()
-                        );
-
-        require(poolAmountIn != 0, "ERR_MATH_APPROX");
-        require(poolAmountIn <= maxPoolAmountIn, "ERR_LIMIT_IN");
-
-        exitFee = DesynSafeMath.bmul(poolAmountIn, DesynConstants.EXIT_FEE);
     }
 
     // Internal functions

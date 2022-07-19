@@ -122,7 +122,7 @@ contract LpToken is LpTokenBase, IERC20 {
         _move(src, dst, amt);
         if (msg.sender != src && _allowance[src][msg.sender] != uint256(-1)) {
             _allowance[src][msg.sender] = bsub(_allowance[src][msg.sender], amt);
-            emit Approval(msg.sender, dst, _allowance[src][msg.sender]);
+            emit Approval(msg.sender, src, _allowance[src][msg.sender]);
         }
         return true;
     }
