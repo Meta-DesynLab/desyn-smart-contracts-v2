@@ -31,7 +31,7 @@ library SafeApprove {
 
         // If approval is not zero reset it to zero first
         if(currentAllowance != 0) {
-            return token.approve(spender, 0);
+            token.approve(spender, 0);
         }
 
         // do the actual approval

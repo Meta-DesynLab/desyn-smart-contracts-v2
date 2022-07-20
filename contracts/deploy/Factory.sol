@@ -92,12 +92,12 @@ contract Factory is BBronze {
         _swapRouter = router;
     }
 
-    function collect(LiquidityPool pool)
+    function collect(IERC20 token)
         external 
     {
         require(msg.sender == _blabs, "ERR_NOT_BLABS");
-        uint collected = IERC20(pool).balanceOf(address(this));
-        bool xfer = pool.transfer(_blabs, collected);
+        uint collected = token.balanceOf(address(this));
+        bool xfer = token.transfer(_blabs, collected);
         require(xfer, "ERR_ERC20_FAILED");
     }
 }
