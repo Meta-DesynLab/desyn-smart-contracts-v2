@@ -62,9 +62,6 @@ contract ConfigurableRightsPool is PCToken, DesynOwnable, DesynReentrancyGuard {
     // Struct holding the rights configuration
     RightsManager.Rights public rights;
 
-    // Hold the parameters used in updateWeightsGradually
-    SmartPoolManager.GradualUpdateParams public gradualUpdate;
-
     // This is for adding a new (currently unbound) token to the pool
     // It's a two-step process: commitAddToken(), then applyAddToken()
     SmartPoolManager.NewTokenParams public newToken;
@@ -82,6 +79,7 @@ contract ConfigurableRightsPool is PCToken, DesynOwnable, DesynReentrancyGuard {
     //   (avoids synchronization issues)
     address[] private _initialTokens;
     uint[] private _initialBalances;
+    uint[] private _initialWeights;
 
     // Enforce a mandatory wait time between updates
     // This is also the wait time between committing and applying a new token
@@ -222,6 +220,7 @@ contract ConfigurableRightsPool is PCToken, DesynOwnable, DesynReentrancyGuard {
         rights = rightsStruct;
         _initialTokens = poolParams.constituentTokens;
         _initialBalances = poolParams.tokenBalances;
+        _initialWeights = poolParams.tokenWeights;
         _initialSwapFee = poolParams.swapFee;
         managerFee = poolParams.managerFee;
         issueFee = poolParams.issueFee;
@@ -230,9 +229,6 @@ contract ConfigurableRightsPool is PCToken, DesynOwnable, DesynReentrancyGuard {
         // These default block time parameters can be overridden in createPool
         addTokenTimeLockInBlocks = DEFAULT_ADD_TOKEN_TIME_LOCK_IN_BLOCKS;
         
-        gradualUpdate.startWeights = poolParams.tokenWeights;
-        // Initializing (unnecessarily) for documentation - 0 means no gradual weight change has been initiated
-        gradualUpdate.startBlock = 0;
         // By default, there is no cap (unlimited pool token minting)
         bspCap = DesynConstants.MAX_UINT;
         emit SetManagerFee(managerFee,issueFee,redeemFee);
@@ -418,7 +414,6 @@ contract ConfigurableRightsPool is PCToken, DesynOwnable, DesynReentrancyGuard {
         require(tokenA != tokenB, "ERR_TOKENS_SAME");
 
         // We don't want people to set weights manually if there's a block-based update in progress
-        require(gradualUpdate.startBlock == 0, "ERR_NO_UPDATE_DURING_GRADUAL");
         bool bools = IVault(vault_Address).getManagerClaimBool(address(this));
         if(bools){
             IVault(vault_Address).managerClaim(address(this));
@@ -461,7 +456,6 @@ contract ConfigurableRightsPool is PCToken, DesynOwnable, DesynReentrancyGuard {
         require(rights.canAddRemoveTokens, "ERR_CANNOT_ADD_REMOVE_TOKENS");
 
         // Can't do this while a progressive update is happening
-        require(gradualUpdate.startBlock == 0, "ERR_NO_UPDATE_DURING_GRADUAL");
         bool bools = IVault(vault_Address).getManagerClaimBool(address(this));
         if(bools){
         IVault(vault_Address).managerClaim(address(this));
@@ -794,7 +788,7 @@ contract ConfigurableRightsPool is PCToken, DesynOwnable, DesynReentrancyGuard {
         for (uint i = 0; i < _initialTokens.length; i++) {
             address t = _initialTokens[i];
             uint bal = _initialBalances[i];
-            uint denorm = gradualUpdate.startWeights[i];
+            uint denorm = _initialWeights[i];
 
             bool returnValue = IERC20(t).transferFrom(msg.sender, address(this), bal);
             require(returnValue, "ERR_ERC20_FALSE");

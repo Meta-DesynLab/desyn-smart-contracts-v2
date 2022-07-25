@@ -169,7 +169,7 @@ contract PCToken is IERC20 {
         if (msg.sender != sender && oldAllowance != uint(-1)) {
             _allowance[sender][msg.sender] = DesynSafeMath.bsub(oldAllowance, amount);
 
-            emit Approval(msg.sender, sender, _allowance[sender][msg.sender]);
+            emit Approval(sender, msg.sender, _allowance[sender][msg.sender]);
         }
 
         return true;

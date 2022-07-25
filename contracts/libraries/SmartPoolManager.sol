@@ -28,16 +28,6 @@ library SmartPoolManager {
         uint balance;
     }
 
-    // For blockwise, automated weight updates
-    // Move weights linearly from startWeights to endWeights,
-    // between startBlock and endBlock
-    struct GradualUpdateParams {
-        uint startBlock;
-        uint endBlock;
-        uint[] startWeights;
-        uint[] endWeights;
-    }
-
     // updateWeight and pokeWeights are unavoidably long
     /* solhint-disable function-max-lines */
     struct Status {
