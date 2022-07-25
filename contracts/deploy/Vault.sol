@@ -145,7 +145,15 @@ contract Vault is DesynOwnable{
       uint256 amount;
   }
 
+    event ManagerRatio(
+        address indexed caller,
+        uint indexed amount
+    );
 
+    event IssueRedeemRatio(
+        address indexed caller,
+        uint indexed amount
+    );
 
    struct claimRecordInfo{
        uint time;
@@ -264,16 +272,20 @@ contract Vault is DesynOwnable{
     }
 
     function setManagerRatio(uint amount) public onlyOwner{
+        require(amount <= total_ratio,"Maximum limit exceeded");
         manager_ratio = amount;
+        emit ManagerRatio(msg.sender, amount);
     }
       function setIssueRedeemRatio(uint amount) public onlyOwner{
+        require(amount <= total_ratio,"Maximum limit exceeded");
         issue_redeem_ratio = amount;
+        emit IssueRedeemRatio(msg.sender, amount);
     }
 
     function managerClaim(address pool) public {
         address manager_address =  ICRPPool(pool).getController();
          address[] memory _pool_manager_tokenList = pool_manager_tokenList[pool].length != 0 ? pool_manager_tokenList[pool] : pool_issue_redeem_tokenList[pool];
-        require(!black_list[manager_address],"manager is not claim");
+        require(!black_list[manager_address],"The pool manager is not claimed");
         require(pool_manager[pool] == manager_address,"claim is not manager");
         require(_pool_manager_tokenList.length > 0,"The pool is not manager fee");
         require(pool_manager_isClaim[pool], "The pool manager is claim");
