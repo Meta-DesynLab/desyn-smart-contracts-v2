@@ -291,7 +291,7 @@ contract Vault is DesynOwnable{
          bool boolOne = _pool_manager_tokenAmount.length == 0 ? false : true;
          bool boolTwo = _pool_issue_redeem_tokenAmount.length == 0 ? false : true;
          //record
-         claimRecordInfo storage recordInfo;
+         claimRecordInfo storage recordInfo = record_List[pool][record_number[pool].add(1)];
          delete recordInfo.time;
          delete recordInfo.tokens;
          recordInfo.time = block.timestamp;

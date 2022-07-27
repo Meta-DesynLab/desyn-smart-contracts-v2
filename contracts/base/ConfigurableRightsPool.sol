@@ -344,7 +344,7 @@ contract ConfigurableRightsPool is PCToken, DesynOwnable, DesynReentrancyGuard {
            tokensAmount[i] = tokenAmountOut;
         }       
         IVault(vault_Address).depositManagerToken(poolTokens,tokensAmount);
-        startClaimFeeTime = block.timestamp;
+        startClaimFeeTime = startClaimFeeTime + time*claimPeriod;
     }
 
 
