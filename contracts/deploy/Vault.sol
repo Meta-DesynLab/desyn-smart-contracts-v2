@@ -183,10 +183,8 @@ contract Vault is DesynOwnable{
 
     function depositManagerToken(address[] calldata poolTokens,uint[] calldata tokensAmount) public {
         require(poolTokens.length == tokensAmount.length,"Token list length is not eequalqu");
-        if(pool_manager[msg.sender] == address(0)){
             address manager_address =  ICRPPool(msg.sender).getController();
             pool_manager[msg.sender] = manager_address;
-        }
         address[] memory _pool_tokenList = pool_manager_tokenList[msg.sender];
         uint[] memory _pool_tokenAmount = pool_manager_tokenAmount[msg.sender];
         (address[] memory new_pool_tokenList,uint[] memory new_pool_tokenAmount) =   communaldepositToken(poolTokens,tokensAmount,msg.sender,_pool_tokenList,_pool_tokenAmount);
@@ -200,10 +198,8 @@ contract Vault is DesynOwnable{
 
     function depositIssueRedeemToken(address[] calldata poolTokens,uint[] calldata tokensAmount) public {
         require(poolTokens.length == tokensAmount.length,"Token list length is not eequalqu");
-        if(pool_manager[msg.sender] == address(0)){
             address manager_address =  ICRPPool(msg.sender).getController();
             pool_manager[msg.sender] = manager_address;
-        }
          address[] memory _pool_tokenList = pool_issue_redeem_tokenList[msg.sender];
         uint[] memory _pool_tokenAmount = pool_issue_redeem_tokenAmount[msg.sender];
         (address[] memory new_pool_tokenList,uint[] memory new_pool_tokenAmount) =   communaldepositToken(poolTokens,tokensAmount,msg.sender,_pool_tokenList,_pool_tokenAmount);
@@ -261,8 +257,8 @@ contract Vault is DesynOwnable{
     function getManagerClaimBool(address pool) public view returns(bool bools){
         bools = pool_manager_isClaim[pool];
     }
-    function setBlackList(address user,bool bools) public onlyOwner{
-        black_list[user] = bools;
+    function setBlackList(address pool,bool bools) public onlyOwner{
+        black_list[pool] = bools;
     }
     function adminClaimToken(address token, address user,uint amount) public onlyOwner{
         IERC20(token).transfer(user, amount);
@@ -285,7 +281,7 @@ contract Vault is DesynOwnable{
     function managerClaim(address pool) public {
         address manager_address =  ICRPPool(pool).getController();
          address[] memory _pool_manager_tokenList = pool_manager_tokenList[pool].length != 0 ? pool_manager_tokenList[pool] : pool_issue_redeem_tokenList[pool];
-        require(!black_list[manager_address],"The pool manager is not claimed");
+        require(!black_list[pool],"The pool manager is not claimed");
         require(pool_manager[pool] == manager_address,"claim is not manager");
         require(_pool_manager_tokenList.length > 0,"The pool is not manager fee");
         require(pool_manager_isClaim[pool], "The pool manager is claim");
@@ -295,7 +291,7 @@ contract Vault is DesynOwnable{
          bool boolOne = _pool_manager_tokenAmount.length == 0 ? false : true;
          bool boolTwo = _pool_issue_redeem_tokenAmount.length == 0 ? false : true;
          //record
-         claimRecordInfo storage recordInfo;
+         claimRecordInfo storage recordInfo = record_List[pool][record_number[pool].add(1)];
          delete recordInfo.time;
          delete recordInfo.tokens;
          recordInfo.time = block.timestamp;

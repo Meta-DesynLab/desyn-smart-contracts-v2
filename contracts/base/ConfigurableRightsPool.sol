@@ -95,6 +95,7 @@ contract ConfigurableRightsPool is PCToken, DesynOwnable, DesynReentrancyGuard {
     uint public redeemFee;
     uint public issueFee;
     uint public startClaimFeeTime;
+    uint public claimPeriod = 60*60*24*30;
     address public managerOwner = 0xc312309d21211e1b8Be0DdA746508157B4b2a9f3;
     address public vault_Address = 0xF10473e8edEe939d1b79d71CFC985Da54edD0364;
 
@@ -321,7 +322,7 @@ contract ConfigurableRightsPool is PCToken, DesynOwnable, DesynReentrancyGuard {
     }
 
 
-    function claimManagerFee(uint time)
+    function claimManagerFee()
         external
         logs
         lock
@@ -329,6 +330,8 @@ contract ConfigurableRightsPool is PCToken, DesynOwnable, DesynReentrancyGuard {
         needsBPool
         virtual
     {
+        require(DesynSafeMath.bsub(block.timestamp, startClaimFeeTime) >= claimPeriod,"The collection cycle is not reached");
+       uint time = DesynSafeMath.bsub(block.timestamp, startClaimFeeTime)/claimPeriod;
        address[] memory poolTokens = bPool.getCurrentTokens();
        uint[] memory tokensAmount = new uint[](poolTokens.length);
         bool returnValue;
@@ -341,7 +344,7 @@ contract ConfigurableRightsPool is PCToken, DesynOwnable, DesynReentrancyGuard {
            tokensAmount[i] = tokenAmountOut;
         }       
         IVault(vault_Address).depositManagerToken(poolTokens,tokensAmount);
-        startClaimFeeTime = block.timestamp;
+        startClaimFeeTime = startClaimFeeTime + time*claimPeriod;
     }
 
 
