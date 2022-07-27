@@ -34,7 +34,48 @@ contract Factory is BBronze {
         address indexed router
     );
 
+    event LOG_WHITELIST(
+        address indexed caller,
+        address indexed token
+    );
+
+    event LOG_DEL_WHITELIST(
+        address indexed caller,
+        address indexed token
+    );
+
     mapping(address=>bool) private _isLiquidityPool;
+    mapping(address=>bool) private _isTokenWhitelisted;
+
+    function addTokenToWhitelist(address token)
+        external
+    {
+        require(msg.sender == _blabs, "ERR_NOT_BLABS");
+        require(token != address(0), "ERR_INVALID_TOKEN_ADDRESS");
+
+        emit LOG_WHITELIST(msg.sender, token);
+
+        _isTokenWhitelisted[token] = true;
+    }
+
+    function removeTokenFromWhitelist(address token)
+        external
+    {
+        require(msg.sender == _blabs, "ERR_NOT_BLABS");
+        require(_isTokenWhitelisted[token], "ERR_TOKEN_NOT_IN_WHITELISTED");
+
+        emit LOG_DEL_WHITELIST(msg.sender, token);
+
+        _isTokenWhitelisted[token] = false;
+    }
+
+    function isTokenWhitelisted(address token)
+        external
+        view
+        returns(bool)
+    {
+        return _isTokenWhitelisted[token];
+    }
 
     function isLiquidityPool(address b)
         external view returns (bool)
@@ -59,7 +100,6 @@ contract Factory is BBronze {
     constructor() public {
         _blabs = msg.sender;
     }
-
 
 
     function getBLabs()

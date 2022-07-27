@@ -86,7 +86,7 @@ interface IBFactory {
     function getSwapRouter() external view returns (address);
     function getVaultAddress() external view returns (address);
     function getManagerOwner() external view returns (address);
-
+    function isTokenWhitelisted(address token) external view returns (bool);
 }
 interface IVault {
     function depositManagerToken(address[] calldata poolTokens,uint[] calldata tokensAmount) external;

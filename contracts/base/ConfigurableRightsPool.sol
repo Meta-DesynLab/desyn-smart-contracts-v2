@@ -413,6 +413,8 @@ contract ConfigurableRightsPool is PCToken, DesynOwnable, DesynReentrancyGuard {
         require(rights.canChangeWeights, "ERR_NOT_CONFIGURABLE_WEIGHTS");
         require(tokenA != tokenB, "ERR_TOKENS_SAME");
 
+        require(bFactory.isTokenWhitelisted(tokenB), "ERR_TOKEN_NOT_IN_WHITELIST");
+
         // We don't want people to set weights manually if there's a block-based update in progress
         bool bools = IVault(vault_Address).getManagerClaimBool(address(this));
         if(bools){
@@ -789,6 +791,8 @@ contract ConfigurableRightsPool is PCToken, DesynOwnable, DesynReentrancyGuard {
             address t = _initialTokens[i];
             uint bal = _initialBalances[i];
             uint denorm = _initialWeights[i];
+
+            require(bFactory.isTokenWhitelisted(t), "ERR_TOKEN_NOT_IN_WHITELIST");
 
             bool returnValue = IERC20(t).transferFrom(msg.sender, address(this), bal);
             require(returnValue, "ERR_ERC20_FALSE");
